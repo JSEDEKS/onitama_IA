@@ -1,4 +1,12 @@
 class Board:
+    RESET = "\033[0m"
+    RED = "\033[91m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BOLD = "\033[1m"
+    BG_GREEN = "\033[42m"
+
     def __init__(self):
         self.size = 5
         self.grid = [[None for _ in range(self.size)] for _ in range(self.size)]
@@ -24,18 +32,23 @@ class Board:
                 x, y = piece.position
                 self.grid[y][x] = piece
                 
-    def print_board(self):
-        print("\nTABLERO:")
+    def print_board(self, valid_moves=None):
+        print(f"\n     0   1   2   3   4")
         for y in range(self.size):
-            row = ""
+            row = f"  {y}  "
             for x in range(self.size):
                 piece = self.grid[y][x]
-                if piece is None:
-                    row += ". "
-                elif piece.type == "MASTER":
-                    row += "M "
+                if piece is not None:
+                    color = self.RED if piece.owner.color == "RED" else self.BLUE
+                    symbol = "M" if piece.type == "MASTER" else "S"
+                    if valid_moves and (x, y) in valid_moves:
+                        row += f"{self.BG_GREEN}{color}{self.BOLD}{symbol}{self.RESET}   "
+                    else:
+                        row += f"{color}{self.BOLD}{symbol}{self.RESET}   "
+                elif valid_moves and (x, y) in valid_moves:
+                    row += f"{self.GREEN}*{self.RESET}   "
                 else:
-                    row += "S "
+                    row += ".   "
             print(row)
 
     def move_piece(self, from_pos, to_pos):
