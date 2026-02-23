@@ -5,11 +5,13 @@ from game.pieces import Master, Student, Piece, Position
 
 
 class Player:
-    def __init__(self, name: str, color: str):
+    def __init__(self, name: str, color: str, is_ai: bool = False):
         self.name = name
-        self.color = color  
+        self.color = color
+        self.is_ai = is_ai      # True si este jugador es controlado por la IA
+        self.agent = None       # Asignar una instancia de BaseAgent si is_ai=True
         self.pieces: List[Piece] = []
-        self.cards = []  
+        self.cards = []
 
     def create_pieces(self, positions: Dict[str, object]) -> None:
         """

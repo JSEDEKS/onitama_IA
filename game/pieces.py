@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 Position = Tuple[int, int]  
 
 
-@dataclass
+@dataclass(eq=False)
 class Piece:
     owner: "Player"
     position: Position
