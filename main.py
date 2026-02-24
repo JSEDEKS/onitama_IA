@@ -1,8 +1,5 @@
 from game.game_manager import GameManager
 
-def main():
+if __name__ == "__main__":
     game = GameManager()
     game.start()
-
-if __name__ == "__main__":
-    main()
