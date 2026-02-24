@@ -31,10 +31,6 @@ Dependencias:
 import time
 from typing import Any
 
-from game.board import Board
-from game.player import Player
-from game.cards import CardManager
-from game.rules import Rules
 from ai.game_state import GameState
 from ai.ai_player import RandomPlayer, GreedyPlayer, MinimaxPlayer, WorstPlayer, IDSPlayer
 from ai.heuristics import Heuristics
@@ -111,10 +107,13 @@ def run_match(agent1: Any, agent2: Any) -> dict:
         }
     """
     # ── Inicializar juego ─────────────────────────────────────────────────────
+    from game.board import Board
+    from game.player import Player
+    from game.cards import CardManager
+
     board        = Board()
     players      = [Player("RED", "RED"), Player("BLUE", "BLUE")]
     card_manager = CardManager()
-    rules        = Rules()
 
     board.setup(players)
     card_manager.deal_cards(players)
