@@ -1,16 +1,16 @@
 import random
 
 CARDS_DATA = {
-    "Tiger": [(0, -2), (0, 1)],
-    "Dragon": [(-2, -1), (2, -1), (-1, 1), (1, 1)],
-    "Frog": [(-2, 0), (-1, 1), (1, -1)],
-    "Rabbit": [(2, 0), (1, 1), (-1, -1)],
-    "Crab": [(-2, 0), (0, 1), (2, 0)],
-    "Elephant": [(-1, 0), (-1, 1), (1, 0), (1, 1)],
-    "Goose": [(-1, 0), (-1, 1), (1, 0), (1, -1)],
-    "Rooster": [(-1, 0), (-1, -1), (1, 0), (1, 1)],
-    "Monkey": [(-1, -1), (1, -1), (-1, 1), (1, 1)],
-    "Mantis": [(-1, 1), (0, -1), (1, 1)]
+    "Tiger":    [(0, -2), (0, 1)],
+    "Dragon":   [(-2, -1), (2, -1), (-1, 1), (1, 1)],
+    "Frog":     [(-2, 0), (-1, -1), (1, 1)],
+    "Rabbit":   [(2, 0), (1, -1), (-1, 1)],
+    "Crab":     [(-2, 0), (0, -1), (2, 0)],
+    "Elephant": [(-1, 0), (-1, -1), (1, 0), (1, -1)],
+    "Goose":    [(-1, 0), (-1, -1), (1, 0), (1, 1)],
+    "Rooster":  [(-1, 0), (-1, 1), (1, 0), (1, -1)],
+    "Monkey":   [(-1, -1), (1, -1), (-1, 1), (1, 1)],
+    "Mantis":   [(-1, -1), (0, 1), (1, -1)]
 }
 
 class Card:
@@ -44,5 +44,29 @@ class CardManager:
         player.cards.append(self.side_card)
         self.side_card = used_card
 
-    def is_valid_move(self, card, move):
-        return move in card.moves
+    def get_oriented_moves(self, card, player_color):
+        if player_color == "RED":
+            return card.moves
+        return [(-dx, -dy) for dx, dy in card.moves]
+
+    def get_valid_moves(self, card, piece, player, board):
+        oriented = self.get_oriented_moves(card, player.color)
+        valid = []
+        px, py = piece.position
+        for dx, dy in oriented:
+            nx, ny = px + dx, py + dy
+            if not (0 <= nx < 5 and 0 <= ny < 5):
+                continue
+            target = board.grid[ny][nx]
+            if target is not None and target.owner == player:
+                continue
+            valid.append((nx, ny))
+        return valid
+
+    def get_all_valid_moves(self, card, player, board):
+        pieces_with_moves = {}
+        for piece in player.pieces:
+            moves = self.get_valid_moves(card, piece, player, board)
+            if moves:
+                pieces_with_moves[piece] = moves
+        return pieces_with_moves
