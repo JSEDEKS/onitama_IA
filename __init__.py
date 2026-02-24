@@ -1,1 +1,0 @@
-# Paquete de Inteligencia Artificial para Onitama

@@ -21,14 +21,15 @@ class ConsoleUI:
         print(self.BOLD + self.BLUE + "        ONITAMA        " + self.RESET)
         self.separator()
         print(self.GREEN + "1. Iniciar juego" + self.RESET)
-        print(self.YELLOW + "2. Instrucciones" + self.RESET)
-        print(self.RED + "3. Salir" + self.RESET)
+        print(self.GREEN + "2. Jugar contra IA" + self.RESET)
+        print(self.YELLOW + "3. Instrucciones" + self.RESET)
+        print(self.RED + "4. Salir" + self.RESET)
         self.separator()
 
     def choose_menu_option(self):
         while True:
-            option = input(self.BOLD + "Elige una opcion (1-3): " + self.RESET)
-            if option in ("1", "2", "3"):
+            option = input(self.BOLD + "Elige una opcion (1-4): " + self.RESET)
+            if option in ("1", "2", "3", "4"):
                 return option
             print(self.RED + "Opcion invalida. Intenta otra vez." + self.RESET)
 

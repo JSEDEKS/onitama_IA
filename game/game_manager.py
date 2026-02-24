@@ -1,8 +1,11 @@
+import time
 from game.board import Board
 from game.player import Player
 from game.cards import CardManager
 from game.rules import Rules
 from utils.console_ui import ConsoleUI
+from ai.game_state import GameState
+from ai.ai_player import RandomPlayer, MinimaxPlayer, IDSPlayer
 
 
 class GameManager:
@@ -19,6 +22,7 @@ class GameManager:
 
         self.card_manager = CardManager()
         self.current_player_index = 0
+        self.ai_opponent = None  # Si es None, es Humano vs Humano
 
     def start(self):
         self.show_menu()
@@ -30,14 +34,41 @@ class GameManager:
             option = self.ui.choose_menu_option()
 
             if option == "1":
+                self.ai_opponent = None
                 self.start_game()
                 break
             elif option == "2":
-                self.ui.show_instructions()
+                self.setup_ai()
+                self.start_game()
+                break
             elif option == "3":
+                self.ui.show_instructions()
+            elif option == "4":
                 exit()
             else:
                 input("Opcion invalida. Presiona ENTER...")
+
+    def setup_ai(self):
+        print("\n" + self.ui.BOLD + "Selecciona dificultad:" + self.ui.RESET)
+        print("1. Facil (Random)")
+        print("2. Medio (Minimax - Profundidad 3)")
+        print("3. Dificil (IDS - 2 segundos)")
+        
+        while True:
+            choice = input("Opcion: ")
+            if choice == "1":
+                self.ai_opponent = RandomPlayer()
+                break
+            elif choice == "2":
+                self.ai_opponent = MinimaxPlayer(depth=3)
+                break
+            elif choice == "3":
+                self.ai_opponent = IDSPlayer(max_time=2.0)
+                break
+            print("Opcion invalida.")
+        
+        # Configurar nombre de la IA
+        self.players[1].name = f"IA ({self.ai_opponent.name})"
 
     def start_game(self):
         self.setup_game()
@@ -54,6 +85,49 @@ class GameManager:
         while True:
             current_player = self.players[self.current_player_index]
             opponent = self.get_opponent(current_player)
+
+            # ─── TURNO DE LA IA ──────────────────────────────────────────────
+            if self.ai_opponent and current_player.color == "BLUE":
+                self.ui.clear()
+                self.ui.show_board(self.board)
+                self.ui.show_player_turn(current_player)
+                print(f"Pensando...")
+
+                # 1. Crear estado actual para la IA
+                state = GameState.from_game(self.board, self.players, self.card_manager, self.current_player_index)
+                
+                # 2. Obtener decisión de la IA
+                next_state = self.ai_opponent.choose_move(state)
+
+                if next_state and next_state.last_move:
+                    card_name, start_pos, end_pos = next_state.last_move
+                    
+                    # 3. Traducir y aplicar movimiento en el juego real
+                    real_card = next(c for c in current_player.cards if c.name == card_name)
+                    real_piece = next(p for p in current_player.pieces if p.position == start_pos)
+                    
+                    print(f"IA mueve {real_piece.type} a {end_pos} usando {card_name}")
+                    time.sleep(1)  # Pequeña pausa para que el humano vea qué pasó
+                    
+                    self.board.move_piece(real_piece.position, end_pos)
+                    self.card_manager.swap_card(current_player, real_card)
+                else:
+                    # Caso raro: no hay movimientos, pasar turno (swap forzado)
+                    print("IA no tiene movimientos validos. Pasa turno.")
+                    real_card = current_player.cards[0]
+                    self.card_manager.swap_card(current_player, real_card)
+                    time.sleep(1)
+
+                # Verificar victoria
+                if self.rules.check_victory(self.board, current_player):
+                    self.ui.clear()
+                    self.ui.show_board(self.board)
+                    self.ui.show_winner(current_player)
+                    break
+
+                self.next_turn()
+                continue
+            # ─────────────────────────────────────────────────────────────────
 
             try:
                 # Mostrar estado del juego
