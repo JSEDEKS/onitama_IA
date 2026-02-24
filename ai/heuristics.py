@@ -5,6 +5,39 @@ class Heuristics:
     Implementación de las 5 heurísticas para la IA de Onitama.
     """
 
+    # Perfiles de personalidad para la IA
+    PROFILES = {
+        "BALANCED": {
+            "piece_count": 100.0,
+            "master_safety": 10.0,  # H2: Avance hacia el templo enemigo
+            "mobility": 5.0,
+            "master_threat": 50.0,
+            "temple_control": 200.0
+        },
+        "AGGRESSIVE": {
+            "piece_count": 80.0,    # Menos materialista
+            "master_safety": 30.0,  # H2: Corre hacia el templo enemigo (muy agresivo)
+            "mobility": 15.0,       # Busca asfixiar
+            "master_threat": 80.0,  # Prioridad alta al Jaque
+            "temple_control": 250.0
+        },
+        "DEFENSIVE": {
+            "piece_count": 150.0,   # H1: Protege piezas a toda costa
+            "master_safety": 0.0,   # H2: No tiene prisa por cruzar el tablero
+            "mobility": 10.0,       # Mantiene opciones de escape
+            "master_threat": 20.0,  # Solo ataca si es seguro
+            "temple_control": 200.0
+        },
+        "TROLL": {
+            "piece_count": 100.0,
+            "master_safety": 10.0,  # H2: Avance hacia el templo enemigo      
+            "mobility": 5.0,        # H3: Movilidad (no le importa mucho)
+            "master_threat": 50.0,  # H4: Amenaza al maestro enemigo
+            "temple_control": 2000.0 # H5: Control del templo enemigo
+        
+        }
+    }
+
     def evaluate(self, state, player, heuristics_count=5, weights=None):
         """
         Calcula el puntaje total del estado para el jugador dado.
@@ -19,14 +52,8 @@ class Heuristics:
             float: Puntaje de la evaluación.
         """
         if weights is None:
-            # Pesos por defecto sugeridos
-            weights = {
-                "piece_count": 100.0,
-                "master_safety": 10.0,
-                "mobility": 5.0,
-                "master_threat": 50.0,
-                "temple_control": 200.0
-            }
+            # Selecciona aquí el perfil: "BALANCED", "AGGRESSIVE" o "DEFENSIVE"
+            weights = self.PROFILES["TROLL"]
 
         score = 0.0
         opponent = state.get_opponent(player) # Asumimos que GameState tiene este método

@@ -2,10 +2,12 @@ from ai.heuristics import Heuristics
 
 class minimax:
 
-    def __init__(self, player_name, max_depth=3):
+    def __init__(self, player_name, max_depth=3, heuristics_count=5, weights=None):
         self.player_name = player_name
         self.max_depth = max_depth
         self.heuristics = Heuristics()
+        self.heuristics_count = heuristics_count
+        self.weights = weights
 
     def solve(self, state):
         move, _ = self.minimax(
@@ -26,7 +28,12 @@ class minimax:
             
             # Usar heurística si no es terminal
             player_obj = next(p for p in state.players if p.name == self.player_name)
-            return state.last_move, self.heuristics.evaluate(state, player_obj)
+            return state.last_move, self.heuristics.evaluate(
+                state, 
+                player_obj, 
+                heuristics_count=self.heuristics_count, 
+                weights=self.weights
+            )
 
         best_move = None
 

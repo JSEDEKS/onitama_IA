@@ -36,7 +36,7 @@ from game.player import Player
 from game.cards import CardManager
 from game.rules import Rules
 from ai.game_state import GameState
-from ai.ai_player import RandomPlayer, GreedyPlayer, MinimaxPlayer
+from ai.ai_player import RandomPlayer, GreedyPlayer, MinimaxPlayer, WorstPlayer, IDSPlayer
 from ai.heuristics import Heuristics
 
 # Máximo de turnos por partida para evitar partidas infinitas
@@ -106,6 +106,7 @@ def run_match(agent1: Any, agent2: Any) -> dict:
             "turns":          int,
             "nodes_expanded": int,
             "depth_reached":  int,
+            "final_score":    float,  # Puntos obtenidos (heurística final)
             "time_used":      float (segundos)
         }
     """
@@ -119,6 +120,7 @@ def run_match(agent1: Any, agent2: Any) -> dict:
     card_manager.deal_cards(players)
 
     agents = [agent1, agent2]
+    heuristics_calc = Heuristics()
 
     # ── Métricas acumuladas ───────────────────────────────────────────────────
     start_time     = time.time()
@@ -141,12 +143,17 @@ def run_match(agent1: Any, agent2: Any) -> dict:
                     winner_color = name
                     break
 
+            # Calcular puntaje final del ganador (o del rojo si empate)
+            winner_obj = players[0] if winner_color == "RED" else players[1]
+            final_score = heuristics_calc.evaluate(state, winner_obj)
+
             return {
                 "winner":         winner_color,
                 "turns":          turn,
                 "nodes_expanded": total_nodes,
                 "depth_reached":  max_depth,
-                "time_used":      round(time.time() - start_time, 4)
+                "time_used":      round(time.time() - start_time, 4),
+                "final_score":    round(final_score, 2)
             }
 
         # Pedir al agente su movimiento
@@ -183,12 +190,16 @@ def run_match(agent1: Any, agent2: Any) -> dict:
         current_index = 1 - current_index
 
     # Si se agotaron los turnos → empate
+    # Evaluamos desde la perspectiva de RED
+    final_score = heuristics_calc.evaluate(state, players[0])
+    
     return {
         "winner":         "DRAW",
         "turns":          MAX_TURNS,
         "nodes_expanded": total_nodes,
         "depth_reached":  max_depth,
-        "time_used":      round(time.time() - start_time, 4)
+        "time_used":      round(time.time() - start_time, 4),
+        "final_score":    round(final_score, 2)
     }
 
 
@@ -232,6 +243,7 @@ def print_report(label: str, results: list) -> None:
     avg_nodes  = sum(r["nodes_expanded"] for r in results) / total
     avg_depth  = sum(r["depth_reached"]  for r in results) / total
     avg_time   = sum(r["time_used"]      for r in results) / total
+    avg_score  = sum(r["final_score"]    for r in results) / total
 
     print(f"\n{'=' * 52}")
     print(f"  {label}")
@@ -240,11 +252,13 @@ def print_report(label: str, results: list) -> None:
     print(f"  RED  gana        : {red_wins}  ({red_wins/total*100:.0f}%)")
     print(f"  BLUE gana        : {blue_wins}  ({blue_wins/total*100:.0f}%)")
     print(f"  Empates          : {draws}  ({draws/total*100:.0f}%)")
+    print(f"  --------------------------------")
     print(f"  Avg turnos       : {avg_turns:.1f}")
     print(f"  Avg nodos        : {avg_nodes:.0f}")
     print(f"  Avg profundidad  : {avg_depth:.1f}")
+    print(f"  Avg puntos final : {avg_score:.2f}")
     print(f"  Avg tiempo       : {avg_time:.3f}s")
-    print(f"{'=' * 52}")
+    print(f"{'=' * 52}\n")
 
 
 # ── Escenarios completos del profesor ─────────────────────────────────────────
@@ -265,56 +279,68 @@ def run_all_benchmarks(num_games: int = 10) -> None:
     print(f"  {num_games} partidas por escenario")
     print("=" * 52)
 
+    # Perfiles de pesos definidos en Heuristics
+    profiles = Heuristics.PROFILES
+
     # ── A. Minimax vs Random ──────────────────────────────────────────────────
-    print("\n[1/7] Minimax vs Random...")
+    print("\n[A] Minimax vs Random (Aleatorio)...")
     results = run_benchmark(MinimaxPlayer(), RandomPlayer(), num_games)
     print_report("Minimax vs Random", results)
 
     # ── B. Minimax vs Greedy ──────────────────────────────────────────────────
-    print("\n[2/7] Minimax vs Greedy...")
+    print("\n[B] Minimax vs Greedy (Avaro)...")
     results = run_benchmark(MinimaxPlayer(), GreedyPlayer(), num_games)
     print_report("Minimax vs Greedy", results)
 
     # ── C. Minimax vs Worst ───────────────────────────────────────────────────
-    print("\n[3/7] Minimax vs Worst (Greedy used as placeholder)...")
-    results = run_benchmark(MinimaxPlayer(), GreedyPlayer(), num_games)
-    print_report("Minimax vs WorstDecision", results)
+    print("\n[C] Minimax vs Worst (Peores decisiones)...")
+    results = run_benchmark(MinimaxPlayer(), WorstPlayer(), num_games)
+    print_report("Minimax vs Worst", results)
 
-    # ── D. Minimax (pesos 1) vs Minimax (pesos 2) ─────────────────────────────
-    print("\n[4/7] Minimax config1 vs Minimax config2 (depths differ)...")
-    results = run_benchmark(
-        MinimaxPlayer(depth=2),
-        MinimaxPlayer(depth=3),
-        num_games
-    )
-    print_report("Minimax (Pesos DEFAULT) vs Minimax (Pesos ALT)", results)
+    # ── D. Humano Experto ─────────────────────────────────────────────────────
+    print("\n[D] Minimax vs Humano Experto")
+    print("    >> Esta prueba debe realizarse manualmente desde el Menú Principal (Opción 2).")
 
     # ── E. Minimax vs Minimax (misma config) ─────────────────────────────────
-    print("\n[5/7] Minimax vs Minimax (igual config)...")
+    print("\n[E] Minimax vs Minimax (Misma IA)...")
     results = run_benchmark(MinimaxPlayer(), MinimaxPlayer(), num_games)
-    print_report("Minimax vs Minimax (misma config)", results)
+    print_report("Minimax vs Minimax", results)
 
-    # ── F. Distintas cantidades de heurísticas ────────────────────────────────
-    print("\n[6/7] Variando profundidad (simulando diferentes heurísticas)...")
-    for n in range(1, 6):
-        depth = max(1, n + 1)
-        print(f"  Minimax (depth={depth}) vs Random...")
+    # ── COMPARACIÓN DE VARIABLES ──────────────────────────────────────────────
+    print("\n" + "=" * 52)
+    print("  COMPARACIÓN DE VARIABLES")
+    print("=" * 52)
+
+    # i & ii. Comparación de Pesos (Config 1 vs Config 2)
+    print("\n[Var i-ii] Minimax (Config 1: AGGRESSIVE) vs Minimax (Config 2: DEFENSIVE)...")
+    results = run_benchmark(
+        MinimaxPlayer(weights=profiles["AGGRESSIVE"]),
+        MinimaxPlayer(weights=profiles["DEFENSIVE"]),
+        num_games
+    )
+    print_report("Config 1 (RED) vs Config 2 (BLUE)", results)
+
+    # iii - vii. Cantidad de Heurísticas (1 a 5)
+    print("\n[Var iii-vii] Minimax con 1, 2, 3, 4, 5 Heurísticas (vs Random)...")
+    for h in range(1, 6):
+        print(f"  -> Probando con {h} heurística(s)...")
         results = run_benchmark(
-            MinimaxPlayer(depth=depth),
+            MinimaxPlayer(heuristics_count=h),
             RandomPlayer(),
             num_games
         )
-        print_report(f"Minimax (depth={depth}) vs Random", results)
+        print_report(f"Minimax ({h} Heurísticas) vs Random", results)
 
-    # ── G. Distintos tiempos máximos ──────────────────────────────────────────
-    print("\n[7/7] Variando max_time...")
+    # viii - x. Minimax con Tiempo Máximo (1s, 3s, 10s)
+    # Usamos IDSPlayer ya que es el que maneja restricciones de tiempo
+    print("\n[Var viii-x] Minimax con Tiempo Máximo (1s, 3s, 10s)...")
     for t in [1.0, 3.0, 10.0]:
-        print(f"  Minimax (max_time={t}s) vs Random...")
+        print(f"  -> Probando con max_time = {t}s...")
         results = run_benchmark(
-            MinimaxPlayer(max_time=t),
+            IDSPlayer(max_time=t),
             RandomPlayer(),
             num_games
         )
-        print_report(f"Minimax (max_time={t}s) vs Random", results)
+        print_report(f"Minimax (Time={t}s) vs Random", results)
 
     print("\n  Benchmark finalizado.")

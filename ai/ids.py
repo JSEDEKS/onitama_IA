@@ -28,7 +28,7 @@ from ai.minimax import minimax
 MAX_DEPTH = 20
 
 
-def ids_decision(state, max_time: float = 3.0) -> tuple:
+def ids_decision(state, max_time: float = 3.0, heuristics_count=5, weights=None) -> tuple:
     """
     Ejecuta Minimax con profundidad creciente hasta agotar el tiempo.
 
@@ -43,6 +43,8 @@ def ids_decision(state, max_time: float = 3.0) -> tuple:
     Args:
         state:     GameState raíz desde donde buscar.
         max_time:  Tiempo máximo en segundos (1.0, 3.0 o 10.0 para benchmark).
+        heuristics_count: Cantidad de heurísticas a usar.
+        weights:   Pesos personalizados.
 
     Returns:
         tuple: (best_child_state, metrics) donde metrics es un dict con:
@@ -67,7 +69,12 @@ def ids_decision(state, max_time: float = 3.0) -> tuple:
 
         # Adaptador para usar la clase minimax
         player_name = state.current_player.name
-        agent = minimax(player_name, max_depth=depth)
+        agent = minimax(
+            player_name, 
+            max_depth=depth,
+            heuristics_count=heuristics_count,
+            weights=weights
+        )
         best_move = agent.solve(state)
 
         # Convertir el movimiento (tuple) al estado hijo correspondiente

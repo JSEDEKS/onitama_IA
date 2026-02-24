@@ -9,7 +9,7 @@ class Rules:
     def master_captured(self, board, player):
         opponent = board.get_opponent(player)
         if opponent is None:
-            return False
+            return True # Si no hay oponente (sin piezas), ganamos
         return not opponent.has_master()
 
     def master_in_temple(self, board, player):

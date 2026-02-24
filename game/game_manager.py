@@ -5,7 +5,7 @@ from game.cards import CardManager
 from game.rules import Rules
 from utils.console_ui import ConsoleUI
 from ai.game_state import GameState
-from ai.ai_player import RandomPlayer, MinimaxPlayer, IDSPlayer
+from ai.ai_player import RandomPlayer, MinimaxPlayer, IDSPlayer, GreedyPlayer, WorstPlayer
 
 
 class GameManager:
@@ -34,13 +34,12 @@ class GameManager:
             option = self.ui.choose_menu_option()
 
             if option == "1":
-                self.ai_opponent = None
-                self.start_game()
-                break
+                self.setup_custom_game()
+                # break eliminado para permitir varias partidas
             elif option == "2":
-                self.setup_ai()
-                self.start_game()
-                break
+                # Acceso rápido (Legacy)
+                self.setup_custom_game(quick_ai=True)
+                # break eliminado para permitir varias partidas
             elif option == "3":
                 self.ui.show_instructions()
             elif option == "4":
@@ -48,27 +47,80 @@ class GameManager:
             else:
                 input("Opcion invalida. Presiona ENTER...")
 
-    def setup_ai(self):
-        print("\n" + self.ui.BOLD + "Selecciona dificultad:" + self.ui.RESET)
-        print("1. Facil (Random)")
-        print("2. Medio (Minimax - Profundidad 3)")
-        print("3. Dificil (IDS - 2 segundos)")
+    def setup_custom_game(self, quick_ai=False):
+        """Configura jugadores y tiempos según requerimientos."""
+        self.ui.clear()
+        print(self.ui.BOLD + "CONFIGURACION DE PARTIDA" + self.ui.RESET)
         
+        # 1. Configurar Jugador 1 (RED)
+        p1_type = self._ask_player_type("Jugador 1 (RED)")
+        self.players[0].name = "RED (Humano)" if p1_type == "human" else "RED (IA)"
+        
+        # 2. Configurar Jugador 2 (BLUE)
+        if quick_ai:
+            p2_type = "ai"
+        else:
+            p2_type = self._ask_player_type("Jugador 2 (BLUE)")
+        self.players[1].name = "BLUE (Humano)" if p2_type == "human" else "BLUE (IA)"
+
+        # 3. Configurar IA si es necesario
+        self.ai_players = {} # Diccionario {index: AI_Agent}
+
+        if p1_type == "ai":
+            print(f"\nConfigurando IA para {self.players[0].name}...")
+            self.ai_players[0] = self._configure_ai()
+        
+        if p2_type == "ai":
+            print(f"\nConfigurando IA para {self.players[1].name}...")
+            self.ai_players[1] = self._configure_ai()
+
+        self.start_game()
+
+    def _ask_player_type(self, label):
+        print(f"\n¿Quién controlará a {label}?")
+        print("1. Humano")
+        print("2. IA")
         while True:
-            choice = input("Opcion: ")
+            op = input("Opción: ")
+            if op == "1": return "human"
+            if op == "2": return "ai"
+
+    def _configure_ai(self):
+        print("\nSelecciona el tipo de IA:")
+        print("1. Aleatoria (Random) - Juega al azar")
+        print("2. Avara (Greedy) - Busca el mejor movimiento inmediato")
+        print("3. Peores decisiones (Worst) - Intenta perder")
+        print("4. Minimax (Profundidad fija)")
+        print("5. IDS (Tiempo límite)")
+
+        while True:
+            choice = input("Opción: ")
+            
             if choice == "1":
-                self.ai_opponent = RandomPlayer()
-                break
+                return RandomPlayer()
             elif choice == "2":
-                self.ai_opponent = MinimaxPlayer(depth=3)
-                break
+                return GreedyPlayer()
             elif choice == "3":
-                self.ai_opponent = IDSPlayer(max_time=2.0)
-                break
-            print("Opcion invalida.")
-        
-        # Configurar nombre de la IA
-        self.players[1].name = f"IA ({self.ai_opponent.name})"
+                return WorstPlayer()
+            elif choice == "4":
+                print("  Profundidad de búsqueda (ej. 3):")
+                try:
+                    d = int(input("  > "))
+                except ValueError:
+                    d = 3
+                return MinimaxPlayer(depth=d)
+            elif choice == "5":
+                print("  Tiempo máximo de pensamiento (segundos):")
+                while True:
+                    try:
+                        t = float(input("  > "))
+                        if t > 0:
+                            return IDSPlayer(max_time=t)
+                    except ValueError:
+                        pass
+                    print("  Por favor ingresa un número válido (ej. 1.5).")
+            
+            print("Opción inválida.")
 
     def start_game(self):
         self.setup_game()
@@ -86,8 +138,9 @@ class GameManager:
             current_player = self.players[self.current_player_index]
             opponent = self.get_opponent(current_player)
 
-            # ─── TURNO DE LA IA ──────────────────────────────────────────────
-            if self.ai_opponent and current_player.color == "BLUE":
+            # ─── TURNO DE IA (Cualquiera de los dos) ─────────────────────────
+            if self.current_player_index in self.ai_players:
+                ai_agent = self.ai_players[self.current_player_index]
                 self.ui.clear()
                 self.ui.show_board(self.board)
                 self.ui.show_player_turn(current_player)
@@ -97,7 +150,7 @@ class GameManager:
                 state = GameState.from_game(self.board, self.players, self.card_manager, self.current_player_index)
                 
                 # 2. Obtener decisión de la IA
-                next_state = self.ai_opponent.choose_move(state)
+                next_state = ai_agent.choose_move(state)
 
                 if next_state and next_state.last_move:
                     card_name, start_pos, end_pos = next_state.last_move
