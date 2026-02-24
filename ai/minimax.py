@@ -1,4 +1,4 @@
-class MinimaxSolver:
+class minimax:
 
     def __init__(self, player_name, max_depth=3):
         self.player_name = player_name
