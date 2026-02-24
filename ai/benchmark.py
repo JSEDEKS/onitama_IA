@@ -174,11 +174,12 @@ def run_match(agent1: Any, agent2: Any) -> dict:
             continue
 
         # Extraer el movimiento del estado copiado
-        ai_card, ai_piece, destination = next_state.last_move
+        # last_move = (card_name: str, piece_pos: tuple, destination: tuple)
+        card_name, piece_pos, destination = next_state.last_move
 
         # Traducir a objetos reales del juego
-        real_piece = _find_real_piece(players[current_index], ai_piece.position)
-        real_card  = _find_real_card(players[current_index], ai_card.name)
+        real_piece = _find_real_piece(players[current_index], piece_pos)
+        real_card  = _find_real_card(players[current_index], card_name)
 
         if real_piece is None or real_card is None:
             break
