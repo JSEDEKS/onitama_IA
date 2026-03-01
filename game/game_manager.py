@@ -129,6 +129,14 @@ class GameManager:
         self.game_loop()
 
     def setup_game(self):
+        # Reinicializar para soportar múltiples partidas consecutivas
+        self.board = Board()
+        self.card_manager = CardManager()
+        self.current_player_index = 0
+        for player in self.players:
+            player.pieces = []
+            player.cards = []
+
         self.board.setup(self.players)
         self.card_manager.deal_cards(self.players)
 
