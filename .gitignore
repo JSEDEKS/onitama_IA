@@ -1,0 +1,10 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Reportes generados automáticamente
+benchmark_*.txt
+reporte_*.txt
+

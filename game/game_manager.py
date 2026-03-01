@@ -1,4 +1,8 @@
+import io
+import os
+import contextlib
 import time
+from datetime import datetime
 from game.board import Board
 from game.player import Player
 from game.cards import CardManager
@@ -35,11 +39,9 @@ class GameManager:
 
             if option == "1":
                 self.setup_custom_game()
-                # break eliminado para permitir varias partidas
             elif option == "2":
                 # Acceso rápido (Legacy)
                 self.setup_custom_game(quick_ai=True)
-                # break eliminado para permitir varias partidas
             elif option == "3":
                 self.ui.show_instructions()
             elif option == "4":
@@ -51,11 +53,11 @@ class GameManager:
         """Configura jugadores y tiempos según requerimientos."""
         self.ui.clear()
         print(self.ui.BOLD + "CONFIGURACION DE PARTIDA" + self.ui.RESET)
-        
+
         # 1. Configurar Jugador 1 (RED)
         p1_type = self._ask_player_type("Jugador 1 (RED)")
         self.players[0].name = "RED (Humano)" if p1_type == "human" else "RED (IA)"
-        
+
         # 2. Configurar Jugador 2 (BLUE)
         if quick_ai:
             p2_type = "ai"
@@ -64,12 +66,12 @@ class GameManager:
         self.players[1].name = "BLUE (Humano)" if p2_type == "human" else "BLUE (IA)"
 
         # 3. Configurar IA si es necesario
-        self.ai_players = {} # Diccionario {index: AI_Agent}
+        self.ai_players = {}  # Diccionario {index: AI_Agent}
 
         if p1_type == "ai":
             print(f"\nConfigurando IA para {self.players[0].name}...")
             self.ai_players[0] = self._configure_ai()
-        
+
         if p2_type == "ai":
             print(f"\nConfigurando IA para {self.players[1].name}...")
             self.ai_players[1] = self._configure_ai()
@@ -95,7 +97,7 @@ class GameManager:
 
         while True:
             choice = input("Opción: ")
-            
+
             if choice == "1":
                 return RandomPlayer()
             elif choice == "2":
@@ -119,7 +121,7 @@ class GameManager:
                     except ValueError:
                         pass
                     print("  Por favor ingresa un número válido (ej. 1.5).")
-            
+
             print("Opción inválida.")
 
     def start_game(self):
@@ -148,20 +150,20 @@ class GameManager:
 
                 # 1. Crear estado actual para la IA
                 state = GameState.from_game(self.board, self.players, self.card_manager, self.current_player_index)
-                
+
                 # 2. Obtener decisión de la IA
                 next_state = ai_agent.choose_move(state)
 
                 if next_state and next_state.last_move:
                     card_name, start_pos, end_pos = next_state.last_move
-                    
+
                     # 3. Traducir y aplicar movimiento en el juego real
-                    real_card = next(c for c in current_player.cards if c.name == card_name)
+                    real_card  = next(c for c in current_player.cards if c.name == card_name)
                     real_piece = next(p for p in current_player.pieces if p.position == start_pos)
-                    
+
                     print(f"IA mueve {real_piece.type} a {end_pos} usando {card_name}")
-                    time.sleep(1)  # Pequeña pausa para que el humano vea qué pasó
-                    
+                    time.sleep(1)
+
                     self.board.move_piece(real_piece.position, end_pos)
                     self.card_manager.swap_card(current_player, real_card)
                 else:
@@ -176,6 +178,7 @@ class GameManager:
                     self.ui.clear()
                     self.ui.show_board(self.board)
                     self.ui.show_winner(current_player)
+                    self._run_post_game_benchmark()
                     break
 
                 self.next_turn()
@@ -241,6 +244,7 @@ class GameManager:
                     self.ui.clear()
                     self.ui.show_board(self.board)
                     self.ui.show_winner(current_player)
+                    self._run_post_game_benchmark()
                     break
 
                 self.next_turn()
@@ -251,3 +255,55 @@ class GameManager:
 
     def next_turn(self):
         self.current_player_index = (self.current_player_index + 1) % 2
+
+    # ── Benchmark post-partida ────────────────────────────────────────────────
+
+    def _run_post_game_benchmark(self):
+        """
+        Ejecuta el benchmark real (ai/benchmark.py) con los agentes de esta
+        partida y guarda el output en un .txt en la raíz del proyecto.
+        Si no hay IA en la partida, no hace nada.
+        """
+        if not self.ai_players:
+            return  # Humano vs Humano — no hay IA que analizar
+
+        from ai.benchmark import run_benchmark, print_report
+
+        num_games = 5  # Partidas de muestra post-juego
+
+        # Determinar agentes y etiqueta del escenario
+        if 0 in self.ai_players and 1 in self.ai_players:
+            agent1 = self.ai_players[0]
+            agent2 = self.ai_players[1]
+            label  = f"{type(agent1).__name__} (RED) vs {type(agent2).__name__} (BLUE)"
+        elif 0 in self.ai_players:
+            agent1 = self.ai_players[0]
+            agent2 = RandomPlayer()
+            label  = f"{type(agent1).__name__} (RED) vs Random (BLUE)"
+        else:
+            agent1 = RandomPlayer()
+            agent2 = self.ai_players[1]
+            label  = f"Random (RED) vs {type(agent2).__name__} (BLUE)"
+
+        ui = self.ui
+        print(f"\n{ui.BOLD}Ejecutando benchmark post-partida ({num_games} partidas)...{ui.RESET}")
+
+        # Capturar todo el output de run_benchmark + print_report en un buffer
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            results = run_benchmark(agent1, agent2, num_games)
+            print_report(label, results)
+
+        output = buffer.getvalue()
+
+        # Guardar en archivo
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        timestamp    = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath     = os.path.join(project_root, f"benchmark_{timestamp}.txt")
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(output)
+
+        print(f"{ui.BOLD}{ui.GREEN}Benchmark guardado en:{ui.RESET}")
+        print(f"  {filepath}")
+        input("\nPresiona ENTER para volver al menú...")
