@@ -1,9 +1,7 @@
 from game.pieces import Master, Student
 
 class Heuristics:
-    """
-    Implementación de las 5 heurísticas para la IA de Onitama.
-    """
+   
 
     # Perfiles de personalidad para la IA
     PROFILES = {
@@ -39,18 +37,7 @@ class Heuristics:
     }
 
     def evaluate(self, state, player, heuristics_count=5, weights=None):
-        """
-        Calcula el puntaje total del estado para el jugador dado.
-        
-        Args:
-            state: Objeto GameState (debe dar acceso al board y piezas).
-            player: El jugador para el que evaluamos (Maximizador).
-            heuristics_count: Cuántas heurísticas usar (1 a 5).
-            weights: Diccionario de pesos opcional.
-        
-        Returns:
-            float: Puntaje de la evaluación.
-        """
+      
         if weights is None:
             # Selecciona aquí el perfil: "BALANCED", "AGGRESSIVE" o "DEFENSIVE"
             weights = self.PROFILES["TROLL"]
@@ -90,20 +77,11 @@ class Heuristics:
     # -------------------------------------------------------------------------
 
     def _h1_piece_count(self, player, opponent):
-        """
-        H1: Diferencia de piezas.
-        Retorna: (Mis piezas - Piezas enemigas).
-        Se puede dar más valor al Maestro si se desea, aquí es conteo simple.
-        """
+      
         return len(player.pieces) - len(opponent.pieces)
 
     def _h2_master_distance(self, state, player):
-        """
-        H2: Distancia del maestro al templo enemigo.
-        Cuanto más cerca, mejor puntaje.
-        Max distancia en 5x5 es 8 pasos (Manhattan).
-        Retorna: 8 - distancia (para que mayor sea mejor).
-        """
+       
         master = player.get_master()
         if not master:
             return -100 # Perdió el maestro, muy malo
@@ -118,11 +96,7 @@ class Heuristics:
         return 8 - dist
 
     def _h3_mobility(self, state, player, opponent):
-        """
-        H3: Movilidad.
-        Cantidad de movimientos válidos disponibles - movimientos del oponente.
-        Nota: Esto requiere que GameState tenga get_all_moves().
-        """
+       
         # Si GameState aún no está listo, usamos un estimado o 0
         try:
             my_moves = len(state.get_all_moves(player))
@@ -132,10 +106,7 @@ class Heuristics:
             return 0
 
     def _h4_master_threat(self, state, player, opponent):
-        """
-        H4: Amenaza al maestro.
-        Retorna 1 si el maestro enemigo puede ser capturado en el siguiente turno.
-        """
+       
         try:
             # Obtenemos todos los destinos posibles de mis movimientos
             my_moves = state.get_all_moves(player) # Lista de (card, piece, (x,y))
@@ -155,11 +126,7 @@ class Heuristics:
             return 0.0
 
     def _h5_temple_control(self, state, player):
-        """
-        H5: Control del templo.
-        Retorna 1 si alguna de mis piezas (preferiblemente Maestro) 
-        está adyacente al templo enemigo o en él.
-        """
+       
         target_pos = state.board.get_enemy_temple(player)
         tx, ty = target_pos
 

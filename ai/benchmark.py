@@ -1,32 +1,3 @@
-"""
-PERSONA 5 — ai/benchmark.py
-============================================================
-Responsabilidad: Sistema de benchmarking automatizado.
-
-Ejecuta partidas automáticas entre agentes y recopila métricas
-para los análisis que pide el profesor:
-
-    A. MinimaxAgent vs RandomAgent
-    B. MinimaxAgent vs GreedyAgent
-    C. MinimaxAgent vs WorstAgent
-    D. MinimaxAgent (config 1) vs MinimaxAgent (config 2)  ← pesos distintos
-    E. MinimaxAgent vs MinimaxAgent (misma config)
-    F. MinimaxAgent con 1, 2, 3, 4, 5 heurísticas
-    G. MinimaxAgent con max_time = 1s, 3s, 10s
-
-Métricas recopiladas por partida:
-    - Ganador
-    - Nodos expandidos
-    - Profundidad máxima alcanzada
-    - Tiempo de ejecución
-
-Dependencias:
-    - ai/game_state.py  (Persona 1)
-    - ai/ai_player.py   (Persona 4)
-    - ai/ids.py         (Persona 5)
-    - game/board.py, game/player.py, game/cards.py, game/rules.py
-============================================================
-"""
 
 import time
 from typing import Any
@@ -42,19 +13,8 @@ MAX_TURNS = 200
 # ── Auxiliares ────────────────────────────────────────────────────────────────
 
 def _find_real_piece(player, position):
-    """
-    Busca en el jugador real la pieza que está en `position`.
-
-    Necesario porque last_move guarda referencias al estado copiado (deepcopy),
-    no al juego real. Se busca por posición porque es única en el tablero.
-
-    Args:
-        player:   Objeto Player del juego real.
-        position: Tupla (x, y) de la posición a buscar.
-
-    Returns:
-        Piece si se encuentra, None si no.
-    """
+  
+   
     for piece in player.pieces:
         if piece.position == position:
             return piece
@@ -62,16 +22,7 @@ def _find_real_piece(player, position):
 
 
 def _find_real_card(player, card_name):
-    """
-    Busca en el jugador real la carta con el nombre dado.
-
-    Args:
-        player:    Objeto Player del juego real.
-        card_name: Nombre de la carta (ej. "Tiger", "Dragon").
-
-    Returns:
-        Card si se encuentra, None si no.
-    """
+    
     for card in player.cards:
         if card.name == card_name:
             return card
@@ -81,31 +32,7 @@ def _find_real_card(player, card_name):
 # ── Motor de partida silenciosa (sin UI) ─────────────────────────────────────
 
 def run_match(agent1: Any, agent2: Any) -> dict:
-    """
-    Ejecuta una partida completa entre dos agentes sin mostrar nada en pantalla.
-
-    agent1 juega como RED  (jugador 0, índice 0)
-    agent2 juega como BLUE (jugador 1, índice 1)
-
-    La partida termina cuando:
-        - Un agente gana (is_terminal retorna True)
-        - Se alcanzan MAX_TURNS turnos → empate
-
-    Args:
-        agent1: Agente que controla a RED.
-        agent2: Agente que controla a BLUE.
-
-    Returns:
-        dict:
-        {
-            "winner":         "RED" | "BLUE" | "DRAW",
-            "turns":          int,
-            "nodes_expanded": int,
-            "depth_reached":  int,
-            "final_score":    float,  # Puntos obtenidos (heurística final)
-            "time_used":      float (segundos)
-        }
-    """
+   
     # ── Inicializar juego ─────────────────────────────────────────────────────
     from game.board import Board
     from game.player import Player
@@ -206,17 +133,7 @@ def run_match(agent1: Any, agent2: Any) -> dict:
 # ── Suite de benchmarks ───────────────────────────────────────────────────────
 
 def run_benchmark(agent1: object, agent2: object, num_games: int = 10) -> list:
-    """
-    Ejecuta múltiples partidas entre dos agentes y retorna los resultados.
-
-    Args:
-        agent1:    Primer agente (RED).
-        agent2:    Segundo agente (BLUE).
-        num_games: Número de partidas a jugar.
-
-    Returns:
-        list[dict]: Lista de resultados, uno por partida.
-    """
+   
     results = []
     for i in range(num_games):
         print(f"  Partida {i + 1}/{num_games}...", end="\r")
@@ -227,13 +144,7 @@ def run_benchmark(agent1: object, agent2: object, num_games: int = 10) -> list:
 
 
 def print_report(label: str, results: list) -> None:
-    """
-    Imprime un resumen legible de los resultados del benchmark.
-
-    Args:
-        label:   Descripción del escenario (ej. "Minimax vs Random").
-        results: Lista de dicts retornada por run_benchmark().
-    """
+ 
     total     = len(results)
     red_wins  = sum(1 for r in results if r["winner"] == "RED")
     blue_wins = sum(1 for r in results if r["winner"] == "BLUE")
@@ -264,16 +175,7 @@ def print_report(label: str, results: list) -> None:
 # ── Escenarios completos del profesor ─────────────────────────────────────────
 
 def run_all_benchmarks(num_games: int = 10) -> None:
-    """
-    Ejecuta TODOS los escenarios que pide el profesor y muestra los resultados.
-
-    Ejecutar con:
-        python main.py --benchmark
-
-    Args:
-        num_games: Partidas por escenario. Default 10.
-                   Subir a 20-30 para resultados más confiables.
-    """
+ 
     print("\n" + "=" * 52)
     print("  BENCHMARK COMPLETO — ONITAMA IA")
     print(f"  {num_games} partidas por escenario")

@@ -62,23 +62,14 @@ class GameState:
     # ─────────────────────────────────────
 
     def is_terminal(self) -> bool:
-        """
-        Minimax espera un boolean.
-        """
+        
         for player in self.players:
             if self._rules.check_victory(self.board, player):
                 return True
         return False
 
     def get_winner_points(self):
-        """
-        Debe devolver:
-        { player_name: score }
-
-        +1 ganador
-        -1 perdedor
-        0 si no terminal
-        """
+      
 
         for player in self.players:
             if self._rules.check_victory(self.board, player):
